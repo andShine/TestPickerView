@@ -1,7 +1,9 @@
 package com.yao.testpickerview;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.widget.Toast;
 
 import com.bigkoo.pickerview.OptionsPickerView;
 import com.google.gson.Gson;
@@ -17,13 +19,12 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<ArrayList<String>> options2Items = new ArrayList<>();
     private ArrayList<ArrayList<ArrayList<String>>> options3Items = new ArrayList<>();
 
-    OptionsPickerView pvOptions;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.button).setOnClickListener(view -> alertPickerView());
+        findViewById(R.id.button2).setOnClickListener(view -> startActivity(WorldPickerActivityTest2.createIntent(this)));
     }
 
     // 弹出选择器
@@ -33,7 +34,6 @@ public class MainActivity extends AppCompatActivity {
         System.out.println("size:" + area.getLocation().size());
 
         // 选项选择器
-        pvOptions = new OptionsPickerView(this);
 
         // 初始化数据
         for (int i = 0; i < area.getLocation().size(); i++) {
@@ -60,22 +60,27 @@ public class MainActivity extends AppCompatActivity {
             options3Items.add(showCountiesList);
         }
 
+        OptionsPickerView pvOptions = new OptionsPickerView.Builder(this, (options1, options2, options3, v) -> {
+            //返回的分别是三个级别的选中位置
+            String tx = options1Items.get(options1) +
+                    options2Items.get(options1).get(options2) +
+                    options3Items.get(options1).get(options2).get(options3);
+
+            Toast.makeText(MainActivity.this, tx, Toast.LENGTH_SHORT).show();
+        })
+                .setTitleText("城市选择")
+                .setDividerColor(Color.BLACK)
+                .setTextColorCenter(Color.BLACK) //设置选中项文字颜色
+                .setContentTextSize(20)
+                .setOutSideCancelable(false)// default is true
+                .build();
+
         //三级联动效果
-        pvOptions.setPicker(options1Items, options2Items, options3Items, true);
+        pvOptions.setPicker(options1Items, options2Items, options3Items);
         // 设置选择的三级单位
         // pwOptions.setLabels("省", "市", "区");
-        pvOptions.setTitle("选择城市");
-        pvOptions.setCyclic(false, false, false);
-        //设置默认选中的三级项目
-        //监听确定选择按钮
-        pvOptions.setSelectOptions(0, 0, 0);
-        pvOptions.setOnoptionsSelectListener((options1, option2, options3) -> {
-            //返回的分别是三个级别的选中位置
-            String tx = options1Items.get(options1)
-                    + options2Items.get(options1).get(option2)
-                    + options3Items.get(options1).get(option2).get(options3);
-            System.out.println("" + tx);
-        });
+        // 设置默认选中的三级项目
+        // pvOptions.setSelectOptions(0, 0, 0);
         pvOptions.show();
     }
 }

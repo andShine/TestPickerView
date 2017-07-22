@@ -23,4 +23,17 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="60dp"
         android:text="Alert Picker View" />
+
+    <Button
+        android:id="@+id/button2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/button"
+        android:layout_alignStart="@+id/button"
+        android:layout_below="@+id/button"
+        android:layout_marginTop="55dp"
+        android:text="World Picker"
+        android:layout_alignRight="@+id/button"
+        android:layout_alignEnd="@+id/button"
+        />
 </RelativeLayout>
