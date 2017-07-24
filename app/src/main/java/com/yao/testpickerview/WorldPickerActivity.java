@@ -30,7 +30,7 @@ import java.util.List;
  * Created by liu on 2017/7/22.
  */
 
-public class WorldPickerActivityTest2 extends AppCompatActivity {
+public class WorldPickerActivity extends AppCompatActivity {
 
     private RelativeLayout rlTop;
     private RelativeLayout rlBottom;
@@ -74,7 +74,7 @@ public class WorldPickerActivityTest2 extends AppCompatActivity {
     };
 
     public static Intent createIntent(Context context) {
-        return new Intent(context, WorldPickerActivityTest2.class);
+        return new Intent(context, WorldPickerActivity.class);
     }
 
     @Override
@@ -101,66 +101,58 @@ public class WorldPickerActivityTest2 extends AppCompatActivity {
         new Thread(() -> {
             // 写子线程中的操作
             optionsCoun = getCountryList();
-            initChinaCountryData("中国");
+            OptionsData optionsData = parseXml("中国");
+            if (null != optionsData) {
+                options1ItemsChina = optionsData.getOptions1Items();
+                options2ItemsChina = optionsData.getOptions2Items();
+                options3ItemsChina = optionsData.getOptions3Items();
+                pickDataProChina = new PickData(options1ItemsChina, false);
+            }
             mHandler.sendEmptyMessage(0);
         }).start();
     }
 
-    // 和下面方法重复，可优化
-    private void initChinaCountryData(String selectedCountry) {
-        pickDataProChina = getList1(selectedCountry);
-        System.out.println("isOnly:" + pickDataProChina.isOnly);
-        // 得到当前所有的省份
-        options1ItemsChina = pickDataProChina.getDatas();
-        // 得到当前所有的城市
-        options2ItemsChina = new ArrayList<>();
-        // 得到当前所有的区县
-        options3ItemsChina = new ArrayList<>();
-        for (int i = 0; i < options1ItemsChina.size(); i++) {
-            List<String> cityList = getList2(selectedCountry, options1ItemsChina.get(i));
-            List<List<String>> tempAreaList
-                    = new ArrayList<>();
-            for (int j = 0; j < cityList.size(); j++) {
-                List<String> areaList = getList3(selectedCountry, options1ItemsChina.get(i), cityList.get(j));
-                if (areaList == null || areaList.size() == 0) {
-                    System.out.println("emptyList");
-                    List<String> emptyList = new ArrayList<>();
-                    emptyList.add("无");
-                    tempAreaList.add(emptyList);
-                }
-                tempAreaList.add(areaList);
-            }
-            options2ItemsChina.add(cityList);
-            options3ItemsChina.add(tempAreaList);
-        }
-    }
-
     private void initOtherCountryData(String selectedCountry) {
+        // 中国的已经解析过了
         if (!"中国".equals(selectedCountry)) {
-            pickDataPro = getList1(selectedCountry);
-            System.out.println("isOnly:" + pickDataPro.isOnly);
-            // 得到当前所有的省份
-            options1Items = pickDataPro.getDatas();
-            // 得到当前所有的城市
-            options2Items = new ArrayList<>();
-            // 得到当前所有的区县
-            options3Items = new ArrayList<>();
-            for (int i = 0; i < options1Items.size(); i++) {
-                List<String> cityList = getList2(selectedCountry, options1Items.get(i));
-                List<List<String>> tempAreaList
-                        = new ArrayList<>();
-                for (int j = 0; j < cityList.size(); j++) {
-                    List<String> areaList = getList3(selectedCountry, options1Items.get(i), cityList.get(j));
-                    if (areaList == null || areaList.size() == 0) {
-                        System.out.println("emptyList");
-                        List<String> emptyList = new ArrayList<>();
-                        emptyList.add("无");
-                        tempAreaList.add(emptyList);
-                    }
-                    tempAreaList.add(areaList);
+            // 美国的解析也很慢
+            if ("美国".equals(selectedCountry)) {
+                OptionsData optionsData = parseXml(selectedCountry);
+                if (null != optionsData) {
+                    options1Items = optionsData.getOptions1Items();
+                    options2Items = optionsData.getOptions2Items();
+                    options3Items = optionsData.getOptions3Items();
+                    pickDataPro = new PickData(options1Items, false);
                 }
-                options2Items.add(cityList);
-                options3Items.add(tempAreaList);
+            } else {
+                pickDataPro = getList1(selectedCountry);
+                // 得到当前所有的省份
+                options1Items = pickDataPro.getDatas();
+                // 不止只有省，才进行遍历
+                if (!pickDataPro.isOnly) {
+                    // 得到当前所有的城市
+                    options2Items = new ArrayList<>();
+                    // 得到当前所有的区县
+                    options3Items = new ArrayList<>();
+                    // 如下方法太烂了，哈哈，可能也不会被调用
+                    for (int i = 0; i < options1Items.size(); i++) {
+                        List<String> cityList = getList2(selectedCountry, options1Items.get(i));
+                        List<List<String>> tempAreaList
+                                = new ArrayList<>();
+                        for (int j = 0; j < cityList.size(); j++) {
+                            List<String> areaList = getList3(selectedCountry, options1Items.get(i), cityList.get(j));
+                            if (areaList == null || areaList.size() == 0) {
+                                System.out.println("emptyList");
+                                List<String> emptyList = new ArrayList<>();
+                                emptyList.add("无");
+                                tempAreaList.add(emptyList);
+                            } else
+                                tempAreaList.add(areaList);
+                        }
+                        options2Items.add(cityList);
+                        options3Items.add(tempAreaList);
+                    }
+                }
             }
         }
     }
@@ -185,19 +177,11 @@ public class WorldPickerActivityTest2 extends AppCompatActivity {
 
     private void showPickWorld() {
         if (null != optionsCoun) {
-            OptionsPickerView opv = new OptionsPickerView.Builder(this, new OptionsPickerView.OnOptionsSelectListener() {
-                @Override
-                public void onOptionsSelect(int options1, int options2, int options3, View v) {
-                    selectedCountry = optionsCoun.get(options1);
-                    tvFirstName.setText(selectedCountry);
-                    tvSecondName.setText("");
-                    HandlerUtils.runOnUiThreadDelay(new Runnable() {
-                        @Override
-                        public void run() {
-                            initOtherCountryData(selectedCountry);
-                        }
-                    }, 500);
-                }
+            OptionsPickerView opv = new OptionsPickerView.Builder(this, (options1, options2, options3, v) -> {
+                selectedCountry = optionsCoun.get(options1);
+                tvFirstName.setText(selectedCountry);
+                tvSecondName.setText("");
+                HandlerUtils.runOnUiThreadDelay(() -> initOtherCountryData(selectedCountry), 500);
             }).setTitleText("选择国家")
                     .setDividerColor(Color.BLACK)
                     .setTextColorCenter(Color.BLACK) //设置选中项文字颜色
@@ -212,22 +196,18 @@ public class WorldPickerActivityTest2 extends AppCompatActivity {
     private void showPickCity() {
         if ("中国".equals(selectedCountry)) {
             pickDataPro = pickDataProChina;
+            // 使用缓存的中国数据
+            options1Items = options1ItemsChina;
+            options2Items = options2ItemsChina;
+            options3Items = options3ItemsChina;
         }
         if (null != pickDataPro) {
             if (pickDataPro.getDatas().size() == 0) {
                 // 只有国家
-                Toast.makeText(WorldPickerActivityTest2.this, "当前只有国家名", Toast.LENGTH_SHORT).show();
+                Toast.makeText(WorldPickerActivity.this, "当前只有国家名", Toast.LENGTH_SHORT).show();
             } else {
                 if (!pickDataPro.isOnly) {
-                    // 现在有两种情况，1.省市县，2.省市
-
-                    if ("中国".equals(selectedCountry)) {
-                        // 使用缓存的中国数据
-                        options1Items = options1ItemsChina;
-                        options2Items = options2ItemsChina;
-                        options3Items = options3ItemsChina;
-                    }
-
+                    // 现在有两种情况，1.省市县，2.省市，直接都用三级选择
                     // 有省市区
                     OptionsPickerView opv = new OptionsPickerView.Builder(this, (options1, options2, options3, v) -> {
                         String selectedPro = options1Items.get(options1);
@@ -272,6 +252,10 @@ public class WorldPickerActivityTest2 extends AppCompatActivity {
         }
     }
 
+    /**
+     * 过时了，可能会用不到
+     */
+    @Deprecated
     private List<String> getList3(String selectedCountry, String selectedPro, String selectedCity) {
         List<String> cList = new ArrayList<>();
         if (!TextUtils.isEmpty(xmlData)) {
@@ -345,6 +329,10 @@ public class WorldPickerActivityTest2 extends AppCompatActivity {
         return cList;
     }
 
+    /**
+     * 过时了，也可能会用不到
+     */
+    @Deprecated
     private List<String> getList2(String selectedCountry, String selectedPro) {
         List<String> cList = new ArrayList<>();
         if (!TextUtils.isEmpty(xmlData)) {
@@ -510,7 +498,139 @@ public class WorldPickerActivityTest2 extends AppCompatActivity {
         return cList;
     }
 
-    class PickData {
+    /**
+     * 解析country对应城市的省市区
+     */
+    private OptionsData parseXml(String country) {
+        try {
+            List<String> options1Items = new ArrayList<>();
+            List<List<String>> options2Items = new ArrayList<>();
+            List<List<List<String>>> options3Items = new ArrayList<>();
+
+            List<String> temp2List = null;// 对应options2Items
+            List<List<String>> temp3List = null;// 对应options3Items
+            List<String> tempAreaList = null;// 对应temp3List
+
+            boolean isNowCountry = false;
+
+            //创建xmlPull解析器
+            XmlPullParser parser = Xml.newPullParser();
+            ///初始化xmlPull解析器
+            parser.setInput(getAssets().open("LocList.xml"), "utf-8");
+            //读取文件的类型
+            int type = parser.getEventType();
+            while (type != XmlPullParser.END_DOCUMENT) {
+                switch (type) {
+                    case XmlPullParser.START_DOCUMENT:
+                        break;
+                    //开始标签
+                    case XmlPullParser.START_TAG:
+                        if ("CountryRegion".equals(parser.getName())) {
+                            // 国家
+                            String name = parser.getAttributeValue(null, "Name");
+                            if (TextUtils.equals(name, country))
+                                isNowCountry = true;
+                        } else if ("State".equals(parser.getName())) {
+                            // 省
+                            if (isNowCountry) {
+                                String nameState = parser.getAttributeValue(null, "Name");
+                                options1Items.add(nameState);
+                                temp2List = new ArrayList<>();
+                                temp3List = new ArrayList<>();
+                            }
+                        } else if ("City".equals(parser.getName())) {
+                            // 市
+                            if (isNowCountry) {
+                                String nameCity = parser.getAttributeValue(null, "Name");
+                                if (!TextUtils.isEmpty(nameCity)) {
+                                    temp2List.add(nameCity);
+                                } else {
+                                    temp2List.add("无");
+                                }
+                                tempAreaList = new ArrayList<>();
+                            }
+                        } else if ("Region".equals(parser.getName())) {
+                            // 区/县
+                            if (isNowCountry) {
+                                String nameRegion = parser.getAttributeValue(null, "Name");
+                                if (!TextUtils.isEmpty(nameRegion)) {
+                                    tempAreaList.add(nameRegion);
+                                } else {
+                                    tempAreaList.add("无");
+                                }
+                            }
+                        }
+                        break;
+                    //结束标签
+                    case XmlPullParser.END_TAG:
+                        if ("CountryRegion".equals(parser.getName())) {
+                            isNowCountry = false;
+                        } else if ("State".equals(parser.getName())) {
+                            if (isNowCountry) {
+                                options2Items.add(temp2List);
+                                options3Items.add(temp3List);
+                            }
+                        } else if ("City".equals(parser.getName())) {
+                            if (isNowCountry) {
+                                if (null != tempAreaList && tempAreaList.size() > 0) {
+                                    temp3List.add(tempAreaList);
+                                } else {
+                                    tempAreaList = new ArrayList<>();
+                                    tempAreaList.add("无");
+                                    temp3List.add(tempAreaList);
+                                }
+                            }
+                        }
+                        break;
+                }
+                //继续往下读取标签类型
+                type = parser.next();
+            }
+            // 得到想要的结果
+            return new OptionsData(options1Items, options2Items, options3Items);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private class OptionsData {
+        List<String> options1Items;
+        List<List<String>> options2Items;
+        List<List<List<String>>> options3Items;
+
+        public OptionsData(List<String> options1Items, List<List<String>> options2Items, List<List<List<String>>> options3Items) {
+            this.options1Items = options1Items;
+            this.options2Items = options2Items;
+            this.options3Items = options3Items;
+        }
+
+        public List<String> getOptions1Items() {
+            return options1Items;
+        }
+
+        public void setOptions1Items(List<String> options1Items) {
+            this.options1Items = options1Items;
+        }
+
+        public List<List<String>> getOptions2Items() {
+            return options2Items;
+        }
+
+        public void setOptions2Items(List<List<String>> options2Items) {
+            this.options2Items = options2Items;
+        }
+
+        public List<List<List<String>>> getOptions3Items() {
+            return options3Items;
+        }
+
+        public void setOptions3Items(List<List<List<String>>> options3Items) {
+            this.options3Items = options3Items;
+        }
+    }
+
+    private class PickData {
         private List<String> datas;
         private boolean isOnly;
 

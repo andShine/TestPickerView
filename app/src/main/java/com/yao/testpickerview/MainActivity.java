@@ -24,7 +24,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.button).setOnClickListener(view -> alertPickerView());
-        findViewById(R.id.button2).setOnClickListener(view -> startActivity(WorldPickerActivityTest2.createIntent(this)));
+        findViewById(R.id.button2).setOnClickListener(view -> startActivity(WorldPickerActivity.createIntent(this)));
+        findViewById(R.id.button3).setOnClickListener(view -> startActivity(TestPullActivity.createIntent(this)));
     }
 
     // 弹出选择器
